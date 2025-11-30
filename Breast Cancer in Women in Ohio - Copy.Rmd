@@ -1,0 +1,75 @@
+---
+title: "Associations between Socioeconomic Factors and Breast Cancer Incidence in Ohio Counties"
+author: "Olivia Ling and Jojo Yu"
+date: "November 28, 2025"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  pdf_document: default
+---
+
+## 0. Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+# IMPORTANT:
+# Do NOT run install.packages() inside the Rmd.
+# Instead, run this ONCE in the Console manually:
+# install.packages(c("tidyverse","readxl","ggthemes","maps","mapdata","stringr"))
+
+library(tidyverse)
+library(readxl)
+library(ggthemes)
+library(maps)
+library(mapdata)
+library(stringr)
+
+```
+## 1. Read & clean data
+
+```{r read_clean}
+county_df <- read_excel("County data.xlsx", skip = 4) |>
+  dplyr::rename(
+    county      = `County`,
+    rural_urban = `Rural/Urban`,
+    app_flag    = `...3`          # third column (Appalachian info)
+  ) |>
+  dplyr::filter(!is.na(county)) |>
+  dplyr::mutate(
+    county = stringr::str_trim(county),
+    rural_urban = factor(
+      rural_urban,
+      levels = c("Urban", "Partially Rural County", "Rural")
+    ),
+    # app_flag column is "Appalachian County" or NA
+    app_flag = if_else(
+      is.na(app_flag),
+      "Non-Appalachian",
+      "Appalachian"
+    ),
+    app_flag = factor(app_flag, levels = c("Non-Appalachian","Appalachian"))
+  )
+
+glimpse(county_df)
+```
+
+
+## 2. 
+```{r}
+ru_summary <- county_df |>
+dplyr::count(rural_urban) |>
+dplyr::mutate(pct = round(100 * n / sum(n), 1))
+ru_summary
+
+app_summary <- county_df |>
+dplyr::count(app_flag) |>
+dplyr::mutate(pct = round(100 * n / sum(n), 1))
+app_summary
+
+cross_tab <- county_df |>
+dplyr::count(app_flag, rural_urban) |>
+dplyr::group_by(app_flag) |>
+dplyr::mutate(pct_within_app = round(100 * n / sum(n), 1))
+cross_tab
