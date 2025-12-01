@@ -25,7 +25,7 @@ library(ggthemes)
 library(maps)
 library(mapdata)
 library(stringr)
-
+library(ggmap)
 ```
 ## 1. Read & clean data
 
@@ -180,8 +180,84 @@ cancer_incidence > median_inc,
 high_incidence = factor(high_incidence, levels = c(0, 1))
 )
 
-# Check the balance of the two groups
+# Check balance of the two groups
 
 table(full_df$high_incidence)
 ```
 
+## 11. Load Ohio county polygons
+
+```{r}
+ohio_map <- map_data("county") %>%
+dplyr::filter(region == "ohio") %>%
+dplyr::mutate(county = tolower(subregion))
+```
+
+## 12. Load Poverty data from County data.xlsx
+# (sheet named exactly "Poverty"; header row is 4, so skip = 4)
+
+```{r}
+poverty <- read_excel(
+  "County data.xlsx",
+  sheet = "Poverty",
+  skip = 4   # THIS is the correct skip
+) %>%
+  transmute(
+    county = stringr::str_to_lower(stringr::str_remove(County, " County$")),
+    poverty_pct = as.numeric(`Value (Percent)`)
+  )
+
+# quick checks (printed in knitted doc)
+head(poverty)
+head(ohio_map)
+```
+
+
+## 13. Merge map polygons with poverty data
+
+```{r}
+map_df <- ohio_map %>%
+dplyr::left_join(poverty, by = "county") %>%
+dplyr::arrange(order)
+```
+
+## 14. Compute centroids for county labels
+
+```{r}
+centroids <- map_df %>%
+dplyr::group_by(county) %>%
+dplyr::summarise(
+clong = mean(long, na.rm = TRUE),
+clat = mean(lat, na.rm = TRUE),
+.groups = "drop"
+)
+```
+
+## 15. Draw the heat map
+
+```{r}
+ggplot() +
+geom_polygon(
+data = map_df,
+aes(x = long, y = lat, group = group, fill = poverty_pct),
+color = "black",
+linewidth = 0.2
+) +
+coord_fixed(1.3) +
+geom_text(
+data = centroids,
+aes(x = clong, y = clat, label = county),
+size = 2.0,
+color = "black"
+) +
+scale_fill_distiller(palette = "Spectral", direction = 1) +
+labs(
+title = "Family Poverty (%) by County in Ohio",
+fill = "Poverty %"
+) +
+theme_void() +
+theme(
+legend.position = "top",
+plot.title = element_text(hjust = 0.5)
+)
+```
