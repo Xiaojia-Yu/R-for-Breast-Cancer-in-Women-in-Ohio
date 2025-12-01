@@ -73,3 +73,95 @@ dplyr::count(app_flag, rural_urban) |>
 dplyr::group_by(app_flag) |>
 dplyr::mutate(pct_within_app = round(100 * n / sum(n), 1))
 cross_tab
+```
+## 3. Read other sheets & merge
+
+```{r read_other_sheets}
+# Each sheet: first column = County, second column = the variable we want.
+# We use select(1, 2) so it doesn't matter what the original header text is.
+
+poverty_df <- read_excel("County data.xlsx", sheet = "Poverty",   skip = 4) |>
+  dplyr::select(1, 2) |>
+  stats::setNames(c("county", "poverty_rate")) |>
+  dplyr::filter(!is.na(county)) |>
+  dplyr::mutate(county = stringr::str_trim(county))
+
+income_df <- read_excel("County data.xlsx", sheet = "Income",    skip = 4) |>
+  dplyr::select(1, 2) |>
+  stats::setNames(c("county", "median_income")) |>
+  dplyr::filter(!is.na(county)) |>
+  dplyr::mutate(county = stringr::str_trim(county))
+
+education_df <- read_excel("County data.xlsx", sheet = "Education", skip = 4) |>
+  dplyr::select(1, 2) |>
+  stats::setNames(c("county", "college_plus_pct")) |>
+  dplyr::filter(!is.na(county)) |>
+  dplyr::mutate(county = stringr::str_trim(county))
+
+population_df <- read_excel("County data.xlsx", sheet = "Population", skip = 4) |>
+  dplyr::select(1, 2) |>
+  stats::setNames(c("county", "female_pop")) |>
+  dplyr::filter(!is.na(county)) |>
+  dplyr::mutate(county = stringr::str_trim(county))
+
+cancer_df <- read_excel("County data.xlsx", sheet = "Cancer",   skip = 4) |>
+  dplyr::select(1, 2) |>
+  stats::setNames(c("county", "cancer_incidence")) |>
+  dplyr::filter(!is.na(county)) |>
+  dplyr::mutate(county = stringr::str_trim(county))
+
+# Merge everything into one master dataset
+full_df <- county_df |>
+  dplyr::left_join(poverty_df,    by = "county") |>
+  dplyr::left_join(income_df,     by = "county") |>
+  dplyr::left_join(education_df,  by = "county") |>
+  dplyr::left_join(population_df, by = "county") |>
+  dplyr::left_join(cancer_df,     by = "county")
+
+glimpse(full_df)
+```
+## 4. Quick summaries
+
+```{r summaries_soc}
+full_df |>
+  dplyr::select(poverty_rate, median_income, college_plus_pct, female_pop, cancer_incidence) |>
+  summary()
+```
+
+
+## 5. Graphs: Cancer incidence vs predictors
+
+```{r plots_predictors, fig.width=6, fig.height=4}
+# Poverty vs cancer
+ggplot(full_df, aes(x = poverty_rate, y = cancer_incidence)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Breast Cancer Incidence vs Poverty Rate",
+    x = "Poverty rate (%)",
+    y = "Breast cancer incidence (per 100,000)"
+  ) +
+  theme_minimal()
+
+# Income vs cancer
+ggplot(full_df, aes(x = median_income, y = cancer_incidence)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Breast Cancer Incidence vs Median Income",
+    x = "Median household income ($)",
+    y = "Breast cancer incidence (per 100,000)"
+  ) +
+  theme_minimal()
+
+# Education vs cancer
+ggplot(full_df, aes(x = college_plus_pct, y = cancer_incidence)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Breast Cancer Incidence vs % with College Degree+",
+    x = "% adults with college degree or higher",
+    y = "Breast cancer incidence (per 100,000)"
+  ) +
+  theme_minimal()
+```
