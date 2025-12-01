@@ -1,7 +1,7 @@
 ---
 title: "Associations between Socioeconomic Factors and Breast Cancer Incidence in Ohio Counties"
-author: " and "
-date: "November 28, 2025."
+author: "Olivia Ling and Jojo Yu"
+date: "November 28, 2025"
 output:
   html_document:
     toc: true
@@ -126,6 +126,8 @@ glimpse(full_df)
 full_df |>
   dplyr::select(poverty_rate, median_income, college_plus_pct, female_pop, cancer_incidence) |>
   summary()
+full_df$poverty_rate<-as.numeric(full_df$poverty_rate)
+full_df$median_income<-as.numeric(full_df$median_income)
 ```
 
 
