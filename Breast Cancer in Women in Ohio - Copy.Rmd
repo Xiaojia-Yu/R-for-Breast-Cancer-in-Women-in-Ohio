@@ -1,7 +1,7 @@
 ---
 title: "Associations between Socioeconomic Factors and Breast Cancer Incidence in Ohio Counties"
-author: "Olivia Ling and Jojo Yu"
-date: "November 28, 2025"
+author: " and "
+date: "November 28, 2025."
 output:
   html_document:
     toc: true
@@ -165,3 +165,23 @@ ggplot(full_df, aes(x = college_plus_pct, y = cancer_incidence)) +
   ) +
   theme_minimal()
 ```
+
+## 6. Use the median incidence as the cutoff for "high" vs "low"
+
+```{r}
+median_inc <- median(full_df$cancer_incidence, na.rm = TRUE)
+
+full_df <- full_df |>
+mutate(
+high_incidence = if_else(
+cancer_incidence > median_inc,
+1L, 0L
+),
+high_incidence = factor(high_incidence, levels = c(0, 1))
+)
+
+# Check the balance of the two groups
+
+table(full_df$high_incidence)
+```
+
